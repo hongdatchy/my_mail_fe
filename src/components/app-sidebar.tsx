@@ -1,5 +1,6 @@
-import { Home, ChevronDown, User, Bell, Settings, LayoutGrid, Users, FileText } from "lucide-react";
+"use client"
 
+import { Home, ChevronDown, User, Bell, Settings, LayoutGrid, Users, FileText } from "lucide-react";
 
 import {
   Sidebar,
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { usePathname } from "next/navigation";
 
 const items = [
   {
@@ -24,7 +26,7 @@ const items = [
     icon: Home,
   },
   {
-    title: "Email",
+    title: "Luồng Email",
     url: "/home/flow-email",
     icon: FileText,
   },
@@ -50,7 +52,7 @@ const items = [
   },
   {
     title: "Quản lý tài khoản",
-    url: "#",
+    url: "/home/manage-account",
     icon: Users,
   },
 ]
@@ -69,6 +71,7 @@ const items2 = [
 ]
 
 export function AppSidebar() {
+  const pathname = usePathname()
 
 
   return (
@@ -99,7 +102,7 @@ export function AppSidebar() {
                             item.item.map((subItem) => (
                               <SidebarMenuSubItem key={subItem.title}>
                                 <SidebarMenuSubButton asChild>
-                                  <Link href={subItem.url}>
+                                  <Link href={subItem.url} className={`flex w-full items-center ${pathname === subItem.url ? "font-semibold bg-muted text-primary" : ""}`}>
                                     {subItem.title}
                                   </Link>
                                 </SidebarMenuSubButton>
@@ -113,10 +116,10 @@ export function AppSidebar() {
                 ) : (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <a href={item.url}>
+                      <Link href={item.url} className={`flex w-full items-center ${pathname.includes(item.url) ? "font-semibold bg-muted text-primary" : ""}`}>
                         <item.icon />
-                        <span>{item.title}</span>
-                      </a>
+                        <span className="flex-1">{item.title}</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )

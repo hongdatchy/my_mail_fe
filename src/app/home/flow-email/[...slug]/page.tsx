@@ -5,27 +5,38 @@ import BreadCrumbArea from "@/components/bread-crumb-area";
 
 import { getData, postData } from "@/service/api";
 import TitlePage from "@/components/title-page";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEffect, useState } from "react";
 import { MultiSelect } from "@/components/multi-select";
 
-import CreateFlowEmailBody from "@/dto/CreateFlowEmailBody";
+import FlowEmailBodyDto, { FlowEmailEntityDto } from "@/dto/FlowEmailBody";
 import { Button } from "@/components/ui/button";
 import QuillEditor from "@/components/quill-editor";
 import { use } from 'react';
 import { toast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { DateTimePicker24h } from "@/components/date-time-picker24h";
 
 
 
 const FlowEmailCreate = ({ params }: { params: Promise<{ slug: string[] }> }) => {
     const { slug } = use(params);
     const [mode, id] = slug || [];
-
     const isView = mode === "view";
-
     const [listTag, setListTag] = useState<any[]>([]);
-    const [listEmail, setListEmail] = useState<any[]>([]);
-    const [createFlowEmailBody, setCreateFlowEmailBody] = useState<CreateFlowEmailBody | null>(null);
+    const [listMail, setListMail] = useState<any[]>([]);
+    const [createFlowEmailBody, setCreateFlowEmailBody] = useState<FlowEmailBodyDto>({
+        name: "",
+        tagIdList: [],
+        flowEmailapproveDtoList: [],
+        startDate: "",
+        startNow: true,
+        content: "",
+        flowEmailFromDtoList: [],
+        flowEmailToDtoList: [],
+    });
+
     const fetchListEmail = async (keyword: string): Promise<{
         label: string;
         value: string;
@@ -39,6 +50,14 @@ const FlowEmailCreate = ({ params }: { params: Promise<{ slug: string[] }> }) =>
                 "type": "user"
             }
         );
+
+        setListMail((prev) => {
+            const combined = [...prev, ...response.content];
+            const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+            return unique;
+        });
+
+
         return response.content.map((item: any) => {
             return {
                 value: item.id.toString(),
@@ -59,19 +78,13 @@ const FlowEmailCreate = ({ params }: { params: Promise<{ slug: string[] }> }) =>
             if (id) {
                 const response = await getData(`api/flow-email/${id}`);
                 setCreateFlowEmailBody(response);
-            } else {
-                setCreateFlowEmailBody(
-                    {
-                        name: "Kỉ niệm 50 nằm, chiến thắng 30/4/1975 giải phóng miền nam, thống nhất đất nước",
-                        tagId: "null",
-                        flowEmailapproveDtoList: [],
-                        startDate: new Date(),
-                        startNow: false,
-                        content: "",
-                        flowEmailFromDtoList: [],
-                        flowEmailToDtoList: [],
+                setListMail([...response.flowEmailapproveDtoList, ...response.flowEmailFromDtoList, ...response.flowEmailToDtoList].map((item: any) => {
+                    return {
+                        id: item.entityId,
+                        email: item.mail
                     }
-                )
+                }));
+
             }
         };
 
@@ -82,7 +95,21 @@ const FlowEmailCreate = ({ params }: { params: Promise<{ slug: string[] }> }) =>
 
 
     const onclickCreateFlowEmail = async () => {
-        await postData('api/flow-email', createFlowEmailBody);
+        try {
+            await postData('api/flow-email', createFlowEmailBody);
+            toast({
+                title: "Tạo thành công",
+                description: "",
+                duration: 3000,
+            })
+        } catch (err: any) {
+            console.log(err);
+
+            toast({ title: "Tạo thất bại", description: <div style={{ whiteSpace: 'pre-line' }}>{err?.message || 'Có lỗi xảy ra'}</div>, duration: 3000, });
+
+        } finally {
+
+        }
     }
 
     const onclickApproveFlowEmail = async () => {
@@ -90,75 +117,70 @@ const FlowEmailCreate = ({ params }: { params: Promise<{ slug: string[] }> }) =>
         try {
             await postData(`api/flow-email/approve/${id}`, {});
             toast({
-                title: "Cập nhật thành công",
+                title: "Duyệt thành công",
                 description: "",
+                duration: 3000,
             })
         } catch (err: any) {
             console.log(err);
 
-            toast({ title: "Cập nhật thất bại", description: err?.message || 'Có lỗi xảy ra' });
+            toast({ title: "Duyệt thất bại", description: <div style={{ whiteSpace: 'pre-line' }}>{err?.message || 'Có lỗi xảy ra'}</div>, duration: 3000, });
         } finally {
 
         }
     }
 
     return <>
-
         <BreadCrumbArea items={[
             { label: "Luồng Email", href: "/home/flow-email" },
             { label: "Tạo luồng email", href: "/home/flow-email/create" }
         ]} />
         <TitlePage title="Tạo luồng Email" />
         <div className="w-full py-4">
-            <Select
-                disabled={isView}
-                value={createFlowEmailBody?.tagId?.toString() ?? ""}
-                onValueChange={(value) => {
-                    setCreateFlowEmailBody((prev) => {
-                        if (!prev) return prev;
-
-                        return {
-                            ...prev,
-                            tagId: value
-                        };
-                    })
-                }}
-            >
-                <SelectTrigger className="w-[180px] mr-4">
-                    <SelectValue placeholder="Chọn thẻ" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectGroup>
-                        {createFlowEmailBody?.tagId?.toString() !== "-1" && <SelectItem value="-1">Tất cả</SelectItem>}
-                        {listTag.map((item: any) => (
-                            <SelectItem key={item.id} value={String(item.id)}>
-                                {item.name}
-                            </SelectItem>
-                        ))}
-                    </SelectGroup>
-                </SelectContent>
-            </Select>
             <div className="flex items-center py-4">
                 <div className="flex flex-wrap w-full gap-4 ">
+                    <div className="w-full">
+                        <div className="max-w-[200px]">
+                            <h1 className="text-xl font-bold mb-4">Chọn thẻ</h1>
+                            {createFlowEmailBody && <MultiSelect
+                                disabled={isView}
+                                options={listTag.map((item: any) => ({ label: item.name, value: item.id?.toString() ?? "" }))}
+                                defaultValue={
+                                    createFlowEmailBody.tagIdList.map((item) => item?.toString() ?? "")
+                                }
+                                onValueChange={(values: string[]) =>
+                                    setCreateFlowEmailBody((prev: FlowEmailBodyDto) => {
+                                        return {
+                                            ...prev,
+                                            tagIdList: values.map((value): number => Number(value))
+                                        };
+                                    })
+                                }
 
+                                placeholder="Chọn thẻ"
+                                variant="inverted"
+                                animation={2}
+                                maxCount={3}
+                            />}
+                        </div>
+                    </div>
                     <div className="basis-[calc(50%-0.5rem)]">
-                        <h1 className="text-2xl font-bold mb-4">Đối tượng gửi</h1>
-                        {createFlowEmailBody && <MultiSelect
+                        <h1 className="text-xl font-bold mb-4">Đối tượng gửi</h1>
+                        <MultiSelect
                             onSearch={fetchListEmail}
                             disabled={isView}
-                            options={[]}
+                            options={createFlowEmailBody.flowEmailFromDtoList.map((item: FlowEmailEntityDto) => ({ label: item.email, value: item.entityId?.toString() ?? "" }))}
                             defaultValue={
-                                createFlowEmailBody.flowEmailFromDtoList.map((item) => item.entityId?.toString() ?? "")
+                                createFlowEmailBody.flowEmailFromDtoList.map((item: FlowEmailEntityDto) => item.entityId?.toString() ?? "")
                             }
                             onValueChange={(values: string[]) =>
-                                setCreateFlowEmailBody((prev) => {
-                                    if (!prev) return prev;
-
+                                setCreateFlowEmailBody((prev: FlowEmailBodyDto) => {
                                     return {
                                         ...prev,
-                                        flowEmailFromDtoList: values.map((value) => ({
-                                            entityId: value,
+                                        flowEmailFromDtoList: values.map((value): FlowEmailEntityDto => ({
+                                            entityId: Number(value),
                                             type: "user",
+                                            email: listMail.find((item) => item.id == value).mail,
                                         })),
                                     };
                                 })
@@ -166,30 +188,29 @@ const FlowEmailCreate = ({ params }: { params: Promise<{ slug: string[] }> }) =>
 
                             placeholder="Chọn đối tượng gửi"
                             variant="inverted"
-                            animation={2}
+                            // animation={2}
                             maxCount={3}
-                        />}
+                        />
 
                     </div>
 
                     <div className="basis-[calc(50%-0.5rem)]">
-                        <h1 className="text-2xl font-bold mb-4">Đối tượng nhận</h1>
-                        {createFlowEmailBody && <MultiSelect
+                        <h1 className="text-xl font-bold mb-4">Đối tượng nhận</h1>
+                        <MultiSelect
                             onSearch={fetchListEmail}
                             disabled={isView}
-                            options={[]}
+                            options={createFlowEmailBody.flowEmailToDtoList.map((item: FlowEmailEntityDto) => ({ label: item.email, value: item.entityId?.toString() ?? "" }))}
                             defaultValue={
                                 createFlowEmailBody.flowEmailToDtoList.map((item) => item.entityId?.toString() ?? "")
                             }
                             onValueChange={(values: string[]) =>
-                                setCreateFlowEmailBody((prev) => {
-                                    if (!prev) return prev;
-
+                                setCreateFlowEmailBody((prev: FlowEmailBodyDto) => {
                                     return {
                                         ...prev,
-                                        flowEmailToDtoList: values.map((value) => ({
-                                            entityId: value,
+                                        flowEmailToDtoList: values.map((value): FlowEmailEntityDto => ({
+                                            entityId: Number(value),
                                             type: "user",
+                                            email: listMail.find((item) => item.id == value).mail,
                                         })),
                                     };
                                 })
@@ -197,30 +218,29 @@ const FlowEmailCreate = ({ params }: { params: Promise<{ slug: string[] }> }) =>
 
                             placeholder="Chọn đối tượng nhận"
                             variant="inverted"
-                            animation={2}
+                            // animation={2}
                             maxCount={3}
-                        />}
+                        />
 
                     </div>
 
                     <div className="basis-[calc(50%-0.5rem)]">
-                        <h1 className="text-2xl font-bold mb-4">Đối tượng duyệt</h1>
-                        {createFlowEmailBody && <MultiSelect
+                        <h1 className="text-xl font-bold mb-4">Đối tượng duyệt</h1>
+                        <MultiSelect
                             onSearch={fetchListEmail}
                             disabled={isView}
-                            options={[]}
+                            options={createFlowEmailBody.flowEmailapproveDtoList.map((item: FlowEmailEntityDto) => ({ label: item.email, value: item.entityId?.toString() ?? "" }))}
                             defaultValue={
                                 createFlowEmailBody.flowEmailapproveDtoList.map((item) => item.entityId?.toString() ?? "")
                             }
                             onValueChange={(values: string[]) =>
-                                setCreateFlowEmailBody((prev) => {
-                                    if (!prev) return prev;
-
+                                setCreateFlowEmailBody((prev: FlowEmailBodyDto) => {
                                     return {
                                         ...prev,
-                                        flowEmailapproveDtoList: values.map((value) => ({
-                                            entityId: value,
+                                        flowEmailapproveDtoList: values.map((value): FlowEmailEntityDto => ({
+                                            entityId: Number(value),
                                             type: "user",
+                                            email: listMail.find((item) => item.id == value).mail,
                                         })),
                                     };
                                 })
@@ -228,31 +248,78 @@ const FlowEmailCreate = ({ params }: { params: Promise<{ slug: string[] }> }) =>
 
                             placeholder="Chọn đối tượng duyệt"
                             variant="inverted"
-                            animation={2}
+                            // animation={2}
                             maxCount={3}
-                        />}
-
+                        />
                     </div>
 
-                    
+                    <div className="basis-[calc(100%-0.5rem)]">
+                        <h1 className="text-xl font-bold mb-4">Tiêu đề</h1>
+                        {createFlowEmailBody &&
+                            <Input type="name" placeholder="Tiêu đề"
+                                value={createFlowEmailBody.name}
+                                onChange={(e) => setCreateFlowEmailBody(
+                                    { ...createFlowEmailBody, name: e.target.value })}
+                                disabled={isView} className="w-full"
+                            />
+                        }
 
-                    <div className="flex flex-col">
-                    <h1 className="text-2xl font-bold mb-4">Nội dung</h1>
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold mb-4">Thời gian gửi</h1>
+                        {createFlowEmailBody.startNow}
+                        {createFlowEmailBody &&
+                            <div className="space-y-4">
+                                <RadioGroup
+                                    disabled={isView}
+                                    value={createFlowEmailBody.startNow == true ? "now" : "custom"}
+                                    className="flex flex-row space-x-4"
+                                    onValueChange={(val) => setCreateFlowEmailBody({ ...createFlowEmailBody, startNow: val == "now" })}
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="now" id="r1" />
+                                        <Label htmlFor="r1">Ngay bây giờ</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="custom" id="r2" />
+                                        <Label htmlFor="r2">Chọn ngày giờ</Label>
+                                    </div>
+                                </RadioGroup>
+
+                                {!createFlowEmailBody.startNow && (
+                                    <div>
+                                        <DateTimePicker24h
+                                            disabled={isView}
+                                            onChange={(date: Date) => setCreateFlowEmailBody(
+                                                { ...createFlowEmailBody, startDate: date.toISOString() })
+                                            }
+                                            isoString={createFlowEmailBody.startDate}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        }
+                    </div>
+
+                    <div className="basis-[calc(100%-0.5rem)]">
+                        <h1 className="text-xl font-bold mb-4">Nội dung</h1>
                         {createFlowEmailBody &&
                             <QuillEditor
                                 disabled={isView}
                                 setCreateFlowEmailBody={setCreateFlowEmailBody}
                                 createFlowEmailBody={createFlowEmailBody}
-                            />}
-                        {isView ?
-                            <Button onClick={onclickApproveFlowEmail} className="mt-4 self-start">
-                                Duyệt
-                            </Button> :
-                            <Button onClick={onclickCreateFlowEmail} className="mt-4 self-start">
-                                Tạo
-                            </Button>}
+                            />
+                        }
                     </div>
 
+                    {id ?
+                        <Button onClick={onclickApproveFlowEmail} className="mt-4 self-start">
+                            Duyệt
+                        </Button> :
+                        <Button onClick={onclickCreateFlowEmail} className="mt-4 self-start">
+                            Tạo
+                        </Button>
+                    }
                 </div>
             </div>
         </div>

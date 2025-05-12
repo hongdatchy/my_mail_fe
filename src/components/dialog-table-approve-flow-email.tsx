@@ -29,9 +29,10 @@ export default function DialogTableApproveFlowEmail({ flowEmail }: { flowEmail: 
             toast({
                 title: "Cập nhật thành công",
                 description: "",
+                duration: 3000
             })
         } catch (err: any) {
-            toast({ title: "Cập nhật thất bại", description: err?.message || 'Có lỗi xảy ra' });
+            toast({ title: "Cập nhật thất bại", description: <div style={{ whiteSpace: 'pre-line' }}>{err?.message || 'Có lỗi xảy ra'}</div>, duration: 3000 });
         } finally {
             setOpen(false);
             router.refresh();

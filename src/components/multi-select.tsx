@@ -124,6 +124,8 @@ interface MultiSelectProps
     icon?: React.ComponentType<{ className?: string }>;
   }[]>;
 
+  maxSelect?: number;
+
 }
 
 export const MultiSelect = React.forwardRef<
@@ -143,6 +145,7 @@ export const MultiSelect = React.forwardRef<
       asChild = false,
       className,
       onSearch,
+      maxSelect,
       ...props
     },
     ref
@@ -152,13 +155,29 @@ export const MultiSelect = React.forwardRef<
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
     const [isAnimating, setIsAnimating] = React.useState(false);
     const [searchResults, setSearchResults] = React.useState(options);
+
     const handleSearch = async (query: string) => {
       if (onSearch) {
         const result = await onSearch(query);
-        setSearchResults(result);
-        handleClear();
+        const selectedOptions = options.filter(opt => selectedValues.includes(opt.value));
+        const combined = [...selectedOptions, ...result];
+        const unique = Array.from(new Map(combined.map(o => [o.value, o])).values());
+        setSearchResults(unique);
       }
     };
+
+    React.useEffect(() => {
+      if (options.length > 0 && searchResults.length === 0) {
+        setSearchResults(options);
+      }
+    }, [options]);
+
+    React.useEffect(() => {
+      if (defaultValue.length > 0 && selectedValues.length === 0) {
+        setSelectedValues(defaultValue);
+      }
+    }, [defaultValue]);
+
 
     const handleInputKeyDown = (
       event: React.KeyboardEvent<HTMLInputElement>
@@ -173,13 +192,33 @@ export const MultiSelect = React.forwardRef<
       }
     };
 
+    // const toggleOption = (option: string) => {
+    //   const newSelectedValues = selectedValues.includes(option)
+    //     ? selectedValues.filter((value) => value !== option)
+    //     : [...selectedValues, option];
+    //   setSelectedValues(newSelectedValues);
+    //   onValueChange(newSelectedValues);
+    // };
+
+
+
     const toggleOption = (option: string) => {
-      const newSelectedValues = selectedValues.includes(option)
-        ? selectedValues.filter((value) => value !== option)
-        : [...selectedValues, option];
+      const isSelected = selectedValues.includes(option);
+
+      let newSelectedValues: string[];
+      if (isSelected) {
+        newSelectedValues = selectedValues.filter((value) => value !== option);
+      } else {
+        if (maxSelect && selectedValues.length >= maxSelect) {
+          return; // Không cho chọn thêm
+        }
+        newSelectedValues = [...selectedValues, option];
+      }
+
       setSelectedValues(newSelectedValues);
       onValueChange(newSelectedValues);
     };
+
 
     const handleClear = () => {
       setSelectedValues([]);
@@ -191,7 +230,7 @@ export const MultiSelect = React.forwardRef<
     };
 
     const clearExtraOptions = () => {
-      const newSelectedValues = selectedValues.slice(0, maxCount);
+      const newSelectedValues = selectedValues.slice(0, props.disabled ? selectedValues.length : maxCount);
       setSelectedValues(newSelectedValues);
       onValueChange(newSelectedValues);
     };
@@ -206,14 +245,13 @@ export const MultiSelect = React.forwardRef<
       }
     };
 
-
-
     return (
       <Popover
         open={isPopoverOpen}
         onOpenChange={setIsPopoverOpen}
         modal={modalPopover}
       >
+
         <PopoverTrigger asChild>
           <Button
             ref={ref}
@@ -227,7 +265,7 @@ export const MultiSelect = React.forwardRef<
             {selectedValues.length > 0 ? (
               <div className="flex justify-between items-center w-full">
                 <div className="flex flex-wrap items-center">
-                  {selectedValues.slice(0, maxCount).map((value) => {
+                  {selectedValues.slice(0, props.disabled ? selectedValues.length : maxCount).map((value) => {
                     const option = (onSearch ? searchResults : options).find((o) => o.value === value);
                     const IconComponent = option?.icon;
                     return (
@@ -253,7 +291,7 @@ export const MultiSelect = React.forwardRef<
                       </Badge>
                     );
                   })}
-                  {selectedValues.length > maxCount && (
+                  {!props.disabled && selectedValues.length > maxCount && (
                     <Badge
                       className={cn(
                         "bg-transparent text-foreground border-foreground/1 hover:bg-transparent",
@@ -289,8 +327,8 @@ export const MultiSelect = React.forwardRef<
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-between w-full mx-auto">
-                <span className="text-sm text-muted-foreground mx-3">
+              <div className="flex items-center justify-between w-full mx-auto gap-2">
+                <span className="text-left text-sm text-muted-foreground mx-3 truncate w-0 flex-1">
                   {placeholder}
                 </span>
                 <ChevronDown className="h-4 cursor-pointer text-muted-foreground mx-2" />
@@ -304,6 +342,7 @@ export const MultiSelect = React.forwardRef<
           onEscapeKeyDown={() => setIsPopoverOpen(false)}
         >
           <Command shouldFilter={onSearch ? false : true}>
+
             <CommandInput
               placeholder="Search..."
               onKeyDown={handleInputKeyDown}

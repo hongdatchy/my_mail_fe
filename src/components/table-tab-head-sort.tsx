@@ -35,7 +35,7 @@ const TableHeadSort = ({ colname, column }: { colname: string; column: string })
     };
 
     return (
-        <TableHead>
+        <TableHead className="">
             <Button variant="ghost" onClick={handleClick}>
                 {colname}
                 {isActive ? (

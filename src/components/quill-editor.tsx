@@ -3,7 +3,7 @@
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 import 'react-quill-new/dist/quill.snow.css';
-import CreateFlowEmailBody from "@/dto/CreateFlowEmailBody";
+import FlowEmailBodyDto from "@/dto/FlowEmailBody";
 import dynamic from 'next/dynamic';
 
 const QuillEditor = ({
@@ -12,8 +12,8 @@ const QuillEditor = ({
     createFlowEmailBody
 }: {
     disabled: boolean;
-    setCreateFlowEmailBody: React.Dispatch<React.SetStateAction<CreateFlowEmailBody | null>>;
-    createFlowEmailBody: CreateFlowEmailBody;
+    setCreateFlowEmailBody: React.Dispatch<React.SetStateAction<FlowEmailBodyDto>>;
+    createFlowEmailBody: FlowEmailBodyDto;
 }) => {
     const handleChange = (value: string) => {
         setCreateFlowEmailBody((prev) => {

@@ -1,4 +1,5 @@
 import BreadCrumbArea from "@/components/bread-crumb-area";
+import SelectTag from "@/components/select-tag";
 
 
 import {
@@ -10,14 +11,16 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import TablePaging from "@/components/table-paging";
-import { postData } from "@/service/api";
+import { getData, postData } from "@/service/api";
 import SearchKeyword from "@/components/search-keyword";
 import TitlePage from "@/components/title-page";
 import TableHeadSort from "@/components/table-tab-head-sort";
-import CreateFlowEmailBtn from "@/components/create-flow-email-btn";
+import CreateUserBtn from "@/components/create-user-btn";
 import Link from "next/link";
+import SaveUserDto from "@/dto/SaveUserDto";
+import { TagList } from "@/components/tag-list";
 
-const OrgEmail = async (
+const ConfigRoleUser = async (
     props: {
         searchParams?: Promise<{
             page?: string;
@@ -30,25 +33,27 @@ const OrgEmail = async (
         }>;
     }
 ) => {
-
+    let listTag: any[] = [];
+    let data: any[] = [];
+    let totalPages = 1;
     const searchParams = await props.searchParams;
     const pageSize: number = Number(searchParams?.pageSize) || 6;
     const page = Number(searchParams?.page) || 1;
     const keyword = searchParams?.keyword || "";
+    const tagId = searchParams?.tagId || null;
     const sortBy = searchParams?.sortBy || null;
     const sortAscending = searchParams?.sortAscending || null;
 
-
-    let data: any[] = [];
-    let totalPages = 1;
-
     try {
-        const responseSearch = await postData("api/organization/search", {
+        listTag = await getData('api/tag');
+        const responseSearch = await postData("api/user/search", {
             keyword,
             sortBy,
             sortAscending,
+            tagId,
             page: page - 1,
             size: pageSize,
+            "type": "user"
         });
 
         data = responseSearch.content;
@@ -57,44 +62,47 @@ const OrgEmail = async (
         console.error(err.message);
     }
 
+
     return <>
-        <BreadCrumbArea items={[{ label: "Email công dân", href: "/home/org-email" }]} />
+
+        <BreadCrumbArea items={[{ label: "Quản lý tài khoản", href: "/home/manage-account" }]} />
 
         <div className="flex items-center justify-between">
-            <TitlePage title="QUẢN LÝ EMAIL TỔ CHỨC" />
+            <TitlePage title="QUẢN LÝ TÀI KHOẢN" />
+            <CreateUserBtn />
         </div>
 
         <div className="w-full">
             <div className="flex items-center py-4">
-                <SearchKeyword keyword={keyword} textEnterButton="Tìm kiếm" />
+                <SelectTag listTag={listTag} />
+                <SearchKeyword keyword={keyword} />
             </div>
 
             <Table className="border-separate border-spacing-y-4" >
                 <TableHeader>
                     <TableRow>
-                        <TableHeadSort colname="Tên tổ chức" column="name" />
-                        <TableHeadSort colname="EMAIL" column="mail" />
-                        <TableHeadSort colname="Trạng thái" column="status" />
-                        <TableHead></TableHead>
+                        <TableHeadSort colname="Mail" column="mail" />
+                        <TableHeadSort colname="Username" column="user" />
+                        <TableHead>Thẻ</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {data && data.length ? (
-                        data.map((organization: any) => (
-                            <TableRow key={organization.id}>
+                        data.map((account: SaveUserDto) => (
+                            <TableRow key={account.id}>
                                 <TableCell className="border-t border-b border-l">
-                                    <Link href={`/home/org-email/view/${organization.id}`} className="block w-full h-full">
-                                        {organization.name}
+                                    <Link href={`/home/manage-account/view/${account.id}`} className="block w-full h-full">
+                                        {account.mail}
                                     </Link>
                                 </TableCell>
                                 <TableCell className="border-t border-b">
-                                    <Link href={`/home/org-email/view/${organization.id}`} className="block w-full h-full">
-                                        {organization.mail}
+                                    <Link href={`/home/manage-account/view/${account.id}`} className="block w-full h-full">
+                                        {account.username}
                                     </Link>
                                 </TableCell>
                                 <TableCell className="border-t border-b border-r">
-                                    <Link href={`/home/org-email/view/${organization.id}`} className="block w-full h-full">
-                                        {organization.status}
+                                    <Link href={`/home/manage-account/view/${account.id}`} className="block w-full h-full">
+                                        <TagList tagIdList={account.tagIdList} listTag={listTag} />
                                     </Link>
                                 </TableCell>
                             </TableRow>
@@ -119,4 +127,4 @@ const OrgEmail = async (
     </>;
 }
 
-export default OrgEmail
+export default ConfigRoleUser

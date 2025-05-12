@@ -7,21 +7,33 @@ import { deleteData } from "@/service/api";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
-const DialogAlertDeleteMail = ({ account }: { account: any }) => {
+const DialogAlertDeleteDistributionList = ({ distributionLists }: { distributionLists: any }) => {
     const [open, setOpen] = useState(false);
     const { toast } = useToast()
     const router = useRouter();
 
     const handleDelete = async () => {
         try {
-            await await deleteData(`api/email/${account.id}`);
+            await await deleteData(`api/distribution-list/${distributionLists.id}`);
             toast({
                 title: "Xoá thành công",
                 description: "",
                 duration: 3000,
             })
         } catch (err: any) {
-            toast({ title: "Xoá thất bại", description: <div style={{ whiteSpace: 'pre-line' }}>{err?.message || 'Có lỗi xảy ra'}</div>, duration: 3000});
+            if (err.status === 400) {
+                toast({
+                    title: "Xoá thất bại",
+                    description: err.message,
+                    duration: 3000,
+                });
+            } else {
+                toast({
+                    title: "Xoá thất bại",
+                    description:"Có lỗi xảy ra",
+                    duration: 3000,
+                });
+            }
         } finally {
             setOpen(false);
             router.refresh();
@@ -37,7 +49,7 @@ const DialogAlertDeleteMail = ({ account }: { account: any }) => {
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>{`Xoá ${account.mail} ?`}</AlertDialogTitle>
+                    <AlertDialogTitle>{`Xoá ${distributionLists.mail} ?`}</AlertDialogTitle>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setOpen(false)}>Huỷ</AlertDialogCancel>
@@ -48,4 +60,4 @@ const DialogAlertDeleteMail = ({ account }: { account: any }) => {
     )
 }
 
-export default DialogAlertDeleteMail;
+export default DialogAlertDeleteDistributionList;

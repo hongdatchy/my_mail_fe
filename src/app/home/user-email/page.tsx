@@ -17,7 +17,7 @@ import { getData, postData } from "@/service/api";
 import SearchKeyword from "@/components/search-keyword";
 import TitlePage from "@/components/title-page";
 import TableHeadSort from "@/components/table-tab-head-sort";
-import DialogEditMail from "@/components/dialog-edit-mail";
+import DialogMail from "@/components/dialog-mail";
 import DialogAlertDeleteMail from "@/components/dialog-alert-delete-mail";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -34,7 +34,9 @@ const UserEmail = async (
         }>;
     }
 ) => {
-    const listTag = await getData('api/tag');
+    let listTag: any[] = [];
+    let data: any[] = [];
+    let totalPages = 1;
     const searchParams = await props.searchParams;
     const pageSize: number = Number(searchParams?.pageSize) || 6;
     const page = Number(searchParams?.page) || 1;
@@ -43,23 +45,33 @@ const UserEmail = async (
     const sortBy = searchParams?.sortBy || null;
     const sortAscending = searchParams?.sortAscending || null;
 
-    const responseSearch = await postData("api/email/search-directory", {
-        "keyword": keyword,
-        "sortBy": sortBy,
-        "sortAscending": sortAscending,
-        "tagId": tagId,
-        "page": page - 1,
-        "size": pageSize,
-        "type": "user"
-    });
-    const data = responseSearch.content;
-    const totalPages = responseSearch.totalPages;
+    try {
+        listTag = await getData('api/tag');
+        const responseSearch = await postData("api/email/search-directory", {
+            keyword,
+            sortBy,
+            sortAscending,
+            tagId,
+            page: page - 1,
+            size: pageSize,
+            "type": "user"
+        });
+
+        data = responseSearch.content;
+        totalPages = responseSearch.totalPages;
+    } catch (err: any) {
+        console.error(err.message);
+    }
+
 
     return <>
 
         <BreadCrumbArea items={[{ label: "Email công dân", href: "/home/user-email" }]} />
 
-        <TitlePage title="ĐỊA CHỈ EMAIL" />
+        <div className="flex items-center justify-between">
+            <TitlePage title="ĐỊA CHỈ EMAIL" />
+            <DialogMail type = "user" listTag={listTag}/>
+        </div>
 
         <div className="w-full">
             <div className="flex items-center py-4">
@@ -71,7 +83,7 @@ const UserEmail = async (
                 <TableHeader>
                     <TableRow>
                         <TableHeadSort colname="HỌ VÀ TÊN" column="displayName" />
-                        <TableHeadSort colname="EMAIL" column="mail" />
+                        <TableHeadSort colname="EMAIL" column="user" />
                         <TableHead></TableHead>
                     </TableRow>
                 </TableHeader>
@@ -94,7 +106,7 @@ const UserEmail = async (
                                                     <h4 className="font-bold">Actions</h4>
                                                 </div>
                                                 <div>
-                                                    <DialogEditMail account={account} />
+                                                    <DialogMail account={account} type = "user" listTag={listTag}/>
                                                 </div>
                                                 <div>
                                                     <DialogAlertDeleteMail account={account} />

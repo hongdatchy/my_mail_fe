@@ -18,9 +18,9 @@ import SearchKeyword from "@/components/search-keyword";
 import TitlePage from "@/components/title-page";
 import TableHeadSort from "@/components/table-tab-head-sort";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import DialogEditMail from "@/components/dialog-edit-mail";
-import DialogAlertDeleteMail from "@/components/dialog-alert-delete-mail";
-import DialogEditDistributionList from "@/components/dialog-edit-distribution-list";
+import DialogDistributionList from "@/components/dialog-distribution-list";
+import DialogAlertDeleteDistributionList from "@/components/dialog-alert-delete-distribution-list";
+import { formatDateVi } from "@/lib/utils";
 
 
 const DistributionList = async (
@@ -36,7 +36,10 @@ const DistributionList = async (
         }>;
     }
 ) => {
-    const listTag = await getData('api/tag');
+    let listTag: any[] = [];
+    let data: any[] = [];
+    let totalPages = 1;
+
     const searchParams = await props.searchParams;
     const pageSize: number = Number(searchParams?.pageSize) || 6;
     const page = Number(searchParams?.page) || 1;
@@ -45,51 +48,47 @@ const DistributionList = async (
     const sortBy = searchParams?.sortBy || null;
     const sortAscending = searchParams?.sortAscending || null;
 
-    const responseSearch = await postData("api/distribution-list/search-directory", {
-        "keyword": keyword,
-        "sortBy": sortBy,
-        "sortAscending": sortAscending,
-        "tagId": tagId,
-        "page": page - 1,
-        "size": pageSize
-    });
 
-    const data = responseSearch.content;
-    const totalPages = responseSearch.totalPages;
-    function getTagNameById(listTag: any[], tagId: any) {
-        const tag = listTag.find(t => t.id === tagId);
-        return tag ? tag.name : '';
+    try {
+        listTag = await getData('api/tag');
+        const responseSearch = await postData("api/distribution-list/search-directory", {
+            keyword,
+            sortBy,
+            sortAscending,
+            tagId,
+            page: page - 1,
+            size: pageSize,
+        });
+
+        data = responseSearch.content;
+        totalPages = responseSearch.totalPages;
+    } catch (err: any) {
+        console.error(err.message);
     }
+    
 
-    function formatDateVi(utcString : string) {
-        const date = new Date(utcString);
-        return new Intl.DateTimeFormat('vi-VN', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }).format(date);
-      }
-      
     return <>
         <BreadCrumbArea items={[{ label: "Email công dân", href: "/home/distribution-list" }]} />
 
-        <TitlePage title="NHÓM EMAIL" />
-
+        <div className="flex items-center justify-between">
+            <TitlePage title="NHÓM EMAIL" />
+            <DialogDistributionList listTag={listTag}/>
+        </div>
+        
         <div className="w-full">
             <div className="flex items-center py-4">
                 <SelectTag listTag={listTag} />
                 <SearchKeyword keyword={keyword} />
+                
             </div>
 
             <Table className="border-separate border-spacing-y-4" >
                 <TableHeader>
                     <TableRow>
                         <TableHeadSort colname="TÊN NHÓM" column="displayName" />
+                        <TableHeadSort colname="EMAIL" column="mail" />
                         <TableHeadSort colname="NGÀY TẠO NHÓM" column="createdDate" />
-                        <TableHead>THẺ</TableHead>
+                        {/* <TableHead>THẺ</TableHead> */}
                         <TableHead></TableHead>
                     </TableRow>
                 </TableHeader>
@@ -98,10 +97,11 @@ const DistributionList = async (
                         data.map((distributionLists: any) => (
                             <TableRow key={distributionLists.id}>
                                 <TableCell className="border-t border-b border-l">{distributionLists.displayName}</TableCell>
+                                <TableCell className="border-t border-b">{distributionLists.mail}</TableCell>
                                 <TableCell className="border-t border-b">{formatDateVi(distributionLists.createdDate)}</TableCell>
-                                <TableCell className="border-t border-b">{getTagNameById(listTag, distributionLists.tagId)}</TableCell>
+                                {/* <TableCell className="border-t border-b">{getTagNameById(listTag, distributionLists.tagId)}</TableCell> */}
                                 <TableCell className="border-t border-b border-r">
-                                    <div className="flex justify-end w-full">
+                                    <div className="flex justify-end">
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="ghost" className="h-8 w-8 p-0">
@@ -113,11 +113,11 @@ const DistributionList = async (
                                                     <h4 className="font-bold">Actions</h4>
                                                 </div>
                                                 <div>
-                                                    <DialogEditDistributionList id={distributionLists.id} />
+                                                    <DialogDistributionList id={distributionLists.id} listTag={listTag}/>
                                                 </div>
-                                                {/* <div>
-                                                    <DialogAlertDeleteMail account={distributionLists} />
-                                                </div> */}
+                                                <div>
+                                                    <DialogAlertDeleteDistributionList distributionLists={distributionLists} />
+                                                </div>
                                             </PopoverContent>
                                         </Popover>
                                     </div>
